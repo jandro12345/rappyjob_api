@@ -1,6 +1,7 @@
 """
 rappy job
 """
+from datetime import datetime,timedelta
 import json
 import falcon
 import logging
@@ -11,32 +12,46 @@ from config import *
 api = falcon.App(cors_enable=True)
 logging.basicConfig(level=logging.DEBUG)
 
+def order_time(time):
+    try:
+        if 'horas' in time or 'hora' in time:
+            time_temp = [int(Numero) for Numero in time.split() if Numero.isdigit()][0]
+            time_temp = (datetime.now() - timedelta(hours=time_temp)).strftime("%Y-%m-%d %H:%M:%S")
+        elif 'días' in time or 'día' in time:
+            time_temp = [int(Numero) for Numero in time.split() if Numero.isdigit()][0]
+            time_temp = (datetime.now() - timedelta(days=time_temp)).strftime("%Y-%m-%d %H:%M:%S")
+        elif 'minutos' in time or 'minuto' in time: 
+            time_temp = [int(Numero) for Numero in time.split() if Numero.isdigit()][0]
+            time_temp = (datetime.now() - timedelta(minutes=time_temp)).strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            time_temp = (datetime.now() - timedelta(days=6)).strftime("%Y-%m-%d %H:%M:%S")
+    except IndexError:
+        time_temp = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
+    return time_temp
+    
+
 class CptGetData():
     """
     Route from /api/cpt-get-data
     """
     @staticmethod
-    def on_get(_, resp):
+    def on_post(_, resp):
         """
-        Function from get 
+        Function from post
         """
         resp.body = ''
         return resp
 
     @staticmethod
-    def on_post(req, resp):
+    def on_get(req, resp):
         data_response: dict = {
                 "data": [],
                 "error": "",
                 "url-native":"",
                 "message": ""
             }
-        try:
-            req_data = json.loads(req.stream.read())
-        except json.JSONDecodeError:
-            data_response['error'] = "Bad Request "
-            resp.body = json.dumps(data_response)
-        format_url = '{}/trabajo-de-{}-en-lima'.format(url_cpt,req_data['parameter'].lower().replace(' ','-'))
+        req_data = str(req.params['parameter']).replace('-',' ')
+        format_url = '{}/trabajo-de-{}-en-lima'.format(url_cpt,req_data.lower().replace(' ','-'))
         data_response['url-native'] = format_url
         response = requests.get(format_url, timeout=15)
         if response:
@@ -45,19 +60,29 @@ class CptGetData():
             item = html.css('article')
             for data in item[:5]:
                 title = data.css('h1 a ::text').extract_first()
-                company = data.css('p a::text').extract_first()
+                company = data.css('p.fs16 a::text').extract_first()
                 place = data.css('p.fs16 ::text').extract()[-1]
                 url = data.css('h1 a ::attr(href)').extract_first()
+                time = data.css('p.fs13::text').extract_first()
                 if url:
                     url = url_cpt + url
                 description = data.css('p.fc_aux::text').extract_first()
+                if not company:
+                    company = ""
+                if not time:
+                    time = "1 hora atras"
+                elif time == "Ayer":
+                    time = "Hace 1 día"
+                time_validate = order_time(time)
                 data_response['data'].append(
                    { 
-                       "title": title,
-                       "company": company,
-                       "place": place,
+                       "title": str(title).upper(),
+                       "company": str(company).upper(),
+                       "place": str(place).replace('\r',' ').replace('\n','').strip(),
                        "url": url,
-                       "description": description
+                       "description": str(description),
+                       "time": str(time),
+                       "time_order":time_validate
                    }
                 )
             data_response['message'] = "Successful"
@@ -70,27 +95,23 @@ class InfoempleoGetData():
     Route from /api/infoempleo-get-data
     """
     @staticmethod
-    def on_get(_, resp):
+    def on_post(_, resp):
         """
-        Function from get 
+        Function from post
         """
         resp.body = ''
         return resp
 
     @staticmethod
-    def on_post(req, resp):
+    def on_get(req, resp):
         data_response: dict = {
                 "data": [],
                 "error": "",
                 "url-native":"",
                 "message": ""
             }
-        try:
-            req_data = json.loads(req.stream.read())
-        except json.JSONDecodeError:
-            data_response['error'] = "Bad Request "
-            resp.body = json.dumps(data_response)
-        format_url = '{}/SearchResult?date=2&rgns=Lima%2C%20Lima&ukw={}'.format(url_infoempleo, req_data['parameter'].lower().replace(' ','%20'))
+        req_data = str(req.params['parameter']).replace('-',' ')
+        format_url = '{}/SearchResult?date=2&rgns=Lima%2C%20Lima&ukw={}'.format(url_infoempleo, req_data.lower().replace(' ','%20'))
         response = requests.get(format_url, timeout=15)
         data_response['url-native'] = format_url
         if response:
@@ -107,14 +128,24 @@ class InfoempleoGetData():
                 if not description:
                     description = i.css('div._10840::text').extract()
                 description = "".join(description)
-                place = i.css('div.caption.d7cb2::text').extract_first()
+                place = i.css('div.caption::text').extract_first()
                 company = i.css('p.e2601::text').extract_first()
+                time = i.css('div._131cd div.caption._0ae25::text').extract_first()
+                if not company:
+                    company = ""
+                if not time:
+                    time = "1 hora atras"
+                elif time == "Ayer":
+                    time = "Hace 1 día"
+                time_validate = order_time(time)
                 data_response['data'].append({
                     "title": title,
                     "company": company,
                     "place": place,
                     "url": url,
-                    "description": description
+                    "description": description.replace('\r',''),
+                    "time": time,
+                    "time_order": time_validate
                 })
             resp.body = json.dumps(data_response)
         return resp

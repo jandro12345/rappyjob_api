@@ -7,37 +7,38 @@
 {% block body %}
 <br>
 <div class="container">
-    <h1 class="title">RapyJob</h1>
+    <h1 class="title">RappyJob</h1>
 </div>
 <br>
 <br>
 <br>
-<div class="container">
-    <div class="input-group mb-2">
-        <input type="text" class="form-control" placeholder="" aria-label="" aria-describedby="basic-addon1">
-        <div class="input-group-prepend">
-          <button class="btn btn-outline-secondary" type="button">Button</button>
+<form method="post">
+    <div class="container">
+        <div class="input-group mb-2">
+            <input type="text" class="form-control" placeholder="Buscar Empleo" name="parameter" aria-label="" aria-describedby="basic-addon1">
+            <div class="input-group-prepend">
+            <button class="btn btn-outline-secondary" type="submit">Search</button>
+            </div>
         </div>
-      </div>
-</div>
+    </div>
+</form>
 <br>
 
 <form>
     <div class="container" >
-        <div class="overflow-auto contenedor">
         {% if data %}
         {% for value in data %}
             <div class="card border-dark mb-3" style="max-width: 50rem;">
-                <a class="url-add" href={{ value['url'] }}><div class="card-header" >{{ value['name'] }}</div></a>
+                <a class="url-add" href={{ value['url'] }}><div class="card-header" >{{ value['title'] }}</div></a>
                 <div class="card-body text-dark">
-                <h5 class="card-title">{{ value['sur'] }}</h5>
-                <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+                <h5 class="card-title">{{ value['company'] }} {{ value['place'] }}</h5>
+                <p class="card-text">{{ value['description'] }}</p>
+                <p class="aux-time">{{ value['time'] }}</p>
                 </div>
             </div>
             <br>
         {% endfor %}
         {% endif %}
-        </div>
     </div>
 </form>
 {% endblock %}

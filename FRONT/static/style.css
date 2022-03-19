@@ -29,7 +29,7 @@ body { padding-top: 70px; }
     scrollbar-color: rgba(0, 0, 0, .5) rgba(0, 0, 0, 0);
     scrollbar-width: thin;
     overflow:auto;
-    max-width: 500px;
-    max-height: 250px;
+    max-width: 1000px;
+    max-height: 500px;
     margin: 0 auto;
 }
