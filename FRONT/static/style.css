@@ -1,3 +1,13 @@
+body {
+    background: #0F1A36; /* fallback for old browsers */
+    background: -webkit-linear-gradient(right, #0F1A36, #0F1A36);
+    background: -moz-linear-gradient(right, #0F1A36, #0F1A36);
+    background: -o-linear-gradient(right, #0F1A36, #0F1A36);
+    background: linear-gradient(to left, #0F1A36, #0F1A36);
+    font-family: "Roboto", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;      
+  }
 .form {
     width: 500px;
     padding: 8% 0 0;
@@ -14,6 +24,7 @@ box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.2), 0 5px 5px 0 rgba(0, 0, 0, 0.24);
 .title{
     font-style: oblique;
     text-align: center;
+    color:white;
 }
 body { padding-top: 70px; }
 .card{

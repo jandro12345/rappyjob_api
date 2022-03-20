@@ -3,11 +3,15 @@ rappy job
 """
 from datetime import datetime,timedelta
 import json
+from sqlite3 import Cursor
 import falcon
 import logging
 import requests
 from parsel import Selector
 from config import *
+from psycopg2 import connect,extras
+import jwt
+import bcrypt
 
 api = falcon.App(cors_enable=True)
 logging.basicConfig(level=logging.DEBUG)
@@ -51,7 +55,7 @@ class CptGetData():
                 "message": ""
             }
         req_data = str(req.params['parameter']).replace('-',' ')
-        format_url = '{}/trabajo-de-{}-en-lima'.format(url_cpt,req_data.lower().replace(' ','-'))
+        format_url = '{}/trabajo-de-{}-en-lima'.format(URL_CPT,req_data.lower().replace(' ','-'))
         data_response['url-native'] = format_url
         response = requests.get(format_url, timeout=15)
         if response:
@@ -65,7 +69,7 @@ class CptGetData():
                 url = data.css('h1 a ::attr(href)').extract_first()
                 time = data.css('p.fs13::text').extract_first()
                 if url:
-                    url = url_cpt + url
+                    url = URL_CPT + url
                 description = data.css('p.fc_aux::text').extract_first()
                 if not company:
                     company = ""
@@ -111,7 +115,7 @@ class InfoempleoGetData():
                 "message": ""
             }
         req_data = str(req.params['parameter']).replace('-',' ')
-        format_url = '{}/SearchResult?date=2&rgns=Lima%2C%20Lima&ukw={}'.format(url_infoempleo, req_data.lower().replace(' ','%20'))
+        format_url = '{}/SearchResult?date=2&rgns=Lima%2C%20Lima&ukw={}'.format(URL_INFOEMPLEO, req_data.lower().replace(' ','%20'))
         response = requests.get(format_url, timeout=15)
         data_response['url-native'] = format_url
         if response:
@@ -150,5 +154,50 @@ class InfoempleoGetData():
             resp.body = json.dumps(data_response)
         return resp
 
+class Register():
+    """
+    Route from /api/register
+    """
+    @staticmethod
+    def on_post(req, resp):
+        """
+        Function from post
+        """
+        data_response: dict = {
+                "data": [],
+                "error": "",
+                "message": ""
+            }
+        try:
+            parameter = json.loads(req.stream.read())
+        except:
+            print("error en decodificar json")
+        conn = connect(dsn=DSN)
+        cursor = conn.cursor(cursor_factory=extras.DictCursor)
+        cursor.execute('Select * from login where username=%s',(parameter['username'],))
+        if cursor.fetchall():
+            data_response['error'] = "El Usuario ya existe"
+        else:
+            parameter.pop('passwordconfirm', None)
+            pass_encode = bcrypt.hashpw(parameter['password'].encode(), bcrypt.gensalt())
+            parameter['password'] = pass_encode.decode()
+            cursor.execute('insert into login (' + ', '.join(list(parameter.keys())) +
+                           ') values ' + str(tuple(parameter.values())))
+            conn.commit()
+            data_response["message"] = "Registro Realizado"
+        conn.close()
+        resp.body = json.dumps(data_response)
+        return resp
+
+    @staticmethod
+    def on_get(_, resp):
+        """
+        Function from get
+        """
+        resp.body = ''
+        return resp
+
+
 api.add_route('/api/cpt-get-data', CptGetData())
 api.add_route('/api/infoempleo-get-data',InfoempleoGetData())
+api.add_route('/api/register',Register())

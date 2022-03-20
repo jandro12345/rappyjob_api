@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='stylelogin.css') }}">
+{% endblock %}
+<br>
+{% block body %}
+<br>
+<br>
+<br>
+<br>
+<div class="container">
+    <div class="card signup_v4" style="max-width: 18rem;margin: 0 auto;">
+        <div class="card-body col-md-12">
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <li class="nav-item " role="presentation"> <a class={% if not data and not name%} "nav-link active" {% else %} "nav-link" {% endif %} id="login-tab" data-toggle="tab" href="#login" role="tab" aria-controls="login" aria-selected="true">Login</a> </li>
+                <li class="nav-item " role="presentation"> <a class={% if data or name%} "nav-link active" {% else %} "nav-link" {% endif %}  id="register-tab" data-toggle="tab" href="#register" role="tab" aria-controls="register" aria-selected="false">Register</a> </li>
+            </ul>
+            <div class="tab-content" id="myTabContent">
+                <div class={% if not data and not name %}"tab-pane fade show active" {% else %} "tab-pane fade" {% endif %} id="login" role="tabpanel" aria-labelledby="login-tab">
+                    <h4 class="text-center mt-4 mb-4" style="text-transform: uppercase;">Login</h4>
+                    <form method="post">
+                        <div class="form-row">
+                            <div class="form-group col-md12"><input type="text" class="form-control" id="inputEmail4" placeholder="Enter your username" required="" name="usernamelogin" > </div>
+                            <div class="form-group col-md-12"><input type="password" class="form-control" id="inputPassword4" placeholder="Enter your password" required="" name="passwordlogin"> </div>
+                            <div class="form-group col-md-12">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center">
+                                    
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-12 text-center" > <button class="btn btn-primary " style="margin: 0 auto;" type="submit">Login</button> </div>
+                    </form>
+                </div>
+                <div class={% if data or name%}"tab-pane fade show active" {% else %} "tab-pane fade" {% endif %} id="register" role="tabpanel" aria-labelledby="register-tab">
+                    <h4 class="text-center mt-4 mb-4" style="text-transform: uppercase;">Register</h4>
+                    <form method="post">
+                        <div class="form-row">
+                            <div class="form-group col-md-12">  <input type="text" class="form-control" id="inputPassword4" placeholder="Enter your username" required="" name="username" {% if data %} value={{ data['username'] }} {% endif %}> </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-12"> <input type="email" class="form-control" id="inputEmail4" placeholder="Enter your email address" required="" name="email" {% if data %} value={{ data['email'] }} {% endif %}> </div>
+                            <div class="form-group col-md-12"> <input type="password" class="form-control" id="inputPassword4" placeholder="Enter your password" required="" name="password" minlength="6" {% if data %} value={{ data['password'] }} {% endif %}> </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-12">  <input type="password" class="form-control" id="inputPassword4" placeholder="Enter your password" required="" name="passwordconfirm" minlength="6" {% if data %} value={{ data['passwordconfirm'] }} {% endif %}> </div>
+                    
+                        </div>
+                        <div class="col-12">
+                            <div class="col-md-12 text-center">
+                               <button class="btn btn-primary mt-3 mt-sm-0" type="submit">Register</button>
+                            </div>
+                        </div>
+                    </form>
+                    <br>s
+                    <div class="message">
+                        {% with messages = get_flashed_messages(with_categories=true)  %}
+                        {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}"> {{ message }} </div>
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
