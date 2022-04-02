@@ -1,17 +1,20 @@
 """
 rappy job
 """
+
 from datetime import datetime,timedelta
 import json
-from sqlite3 import Cursor
 import falcon
 import logging
 import requests
 from parsel import Selector
 from config import *
-from psycopg2 import connect,extras
-import jwt
+from psycopg2 import connect,extras,sql
+import secrets
 import bcrypt
+import os
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 api = falcon.App(cors_enable=True)
 logging.basicConfig(level=logging.DEBUG)
@@ -178,13 +181,35 @@ class Register():
         if cursor.fetchall():
             data_response['error'] = "El Usuario ya existe"
         else:
-            parameter.pop('passwordconfirm', None)
-            pass_encode = bcrypt.hashpw(parameter['password'].encode(), bcrypt.gensalt())
-            parameter['password'] = pass_encode.decode()
-            cursor.execute('insert into login (' + ', '.join(list(parameter.keys())) +
-                           ') values ' + str(tuple(parameter.values())))
-            conn.commit()
-            data_response["message"] = "Registro Realizado"
+            cursor.execute('Select * from login where email=%s',(parameter['email'],))
+            temp = cursor.fetchall()
+            if not temp:
+                parameter.pop('passwordconfirm', None)
+                pass_encode = bcrypt.hashpw(parameter['password'].encode(), bcrypt.gensalt())
+                parameter['password'] = pass_encode.decode()
+                cursor.execute('insert into login (' + ', '.join(list(parameter.keys())) +
+                            ') values %s RETURNING id', (tuple(parameter.values()),))
+                conn.commit()
+                email_encode = (bcrypt.hashpw(parameter['email'].encode(), bcrypt.gensalt())).decode()
+                temp = cursor.fetchall()[0][0]
+                message = Mail(
+                    from_email = 'webrap8@gmail.com',
+                    to_emails = parameter['email'],
+                    subject = 'Confirm Email Rappyjob',
+                    html_content = '<h2>Click para Confirmar </h2>'
+                                   '<br aria-hidden="true">'
+                                   '<a class="navbar-brand" href="{}/verification?e={}&i={}">Confirmar</a>'.format(URL_FLASK,email_encode,temp))
+                try:
+                    sg = SendGridAPIClient(os.environ.get('API_KEY_SEND'))
+                    response = sg.send(message)
+                    print(response.status_code)
+                    print(response.body)
+                    print(response.headers)
+                except Exception as e:
+                    print(e.message)
+                data_response["message"] = "Registro Realizado Confirmar Email"
+            else:
+                data_response['error'] = "Email ya registrado"
         conn.close()
         resp.body = json.dumps(data_response)
         return resp
@@ -198,6 +223,159 @@ class Register():
         return resp
 
 
+class RegisterEmail():
+    @staticmethod
+    def on_get(req,resp):
+        """
+        verification email 
+        """
+        data_response: dict = {
+                "data": [],
+                "error": "",
+                "message": ""
+            }
+        req_email = str(req.params.get('e'))
+        req_id = req.params.get('i')
+        conn = connect(dsn=DSN)
+        cursor = conn.cursor(cursor_factory=extras.DictCursor)
+        cursor.execute('select email from login where id=%s and status = false',(req_id,))
+        temp_pass = cursor.fetchall()
+        if temp_pass:
+            if bcrypt.checkpw(temp_pass[0][0].encode(), req_email.encode()):
+                query = sql.SQL(
+                        '''
+                        UPDATE login SET
+                            status = true
+                        where 
+                            id=%s
+                        ''')
+                cursor.execute(query, (int(req_id),))
+                conn.commit()
+                data_response['message'] = "Succesful"
+                resp.body = json.dumps(data_response)
+                return resp
+            else:
+                data_response['error'] = "Error al verificar el email"
+                resp.body = json.dumps(data_response)
+                return resp
+        else:
+            data_response['error'] = "No existe cuenta por verificar"
+            resp.body = json.dumps(data_response)
+            return resp
+
+    @staticmethod
+    def on_post(_, resp):
+        """
+        Function from post
+        """
+        resp.body = ''
+        return resp
+
+
+class LoginRappyJob():
+    @staticmethod
+    def on_post(req, resp):
+        """
+        Function from post
+        """
+        data_response: dict = {
+                "data": [],
+                "error": "",
+                "message": ""
+            }
+        parameter = json.load(req.bounded_stream)
+        conn = connect(dsn=DSN)
+        cursor = conn.cursor(cursor_factory=extras.DictCursor)
+        query = sql.SQL("""
+                        select
+                            password,status
+                        from
+                            login 
+                        where
+                            username=%s 
+                        """)
+        cursor.execute(query, (parameter['usernamelogin'],))
+        temp_data = cursor.fetchall()
+        if temp_data:
+            if not temp_data[0][1]:
+                data_response['error'] = "Falta verificar su email"
+            elif bcrypt.checkpw(parameter['passwordlogin'].encode(),temp_data[0][0].encode()):
+                token = secrets.token_hex()
+                cursor.execute('UPDATE login SET token_session=%s'
+                               'where username =%s RETURNING id',(token,parameter['usernamelogin'],))
+                conn.commit()
+                temp_data = cursor.fetchall()[0][0]
+                data_response['message'] = "Successful"
+                data_response['data'].append({"id": temp_data, "token": token})
+            else:
+                data_response['error'] = "Password incorrecto"
+        else:
+            data_response['error'] = "Usuario no existe"
+        resp.body = json.dumps(data_response)
+        return resp
+
+    @staticmethod
+    def on_get(_, resp):
+        """
+        Function from get
+        """
+        resp.body = ''
+        return resp
+
+
+class UpdateParameter():
+    @staticmethod
+    def on_post(req, resp):
+        """
+        Function from post
+        """
+        data_response: dict = {
+                "data": [],
+                "error": "",
+                "message": ""
+            }
+        parameter = json.load(req.bounded_stream)
+        conn = connect(dsn=DSN)
+        cursor = conn.cursor(cursor_factory=extras.DictCursor)
+        if parameter.get('id'):
+            cursor.execute('UPDATE parameter_user SET '
+                           'parameter=%s, status=%s '
+                           'where id=%s and id_user=%s',(parameter['parameter'].upper(),parameter['status'],
+                                                         parameter['id'], parameter['id_user']))
+            conn.commit()
+            conn.close()
+            data_response['message'] = "Successful"
+            resp.body = json.dumps(data_response)
+        elif not parameter.get('id'):
+            cursor.execute('select * from parameter_user '
+                           'where parameter=%s and id_user=%s',(parameter['parameter'].upper(),parameter['id_user']))
+            temp = cursor.fetchall()
+            if temp:
+                cursor.execute('UPDATE parameter_user SET '
+                               'status=true '
+                               'where parameter=%s and id_user=%s',(parameter['parameter'].upper(),parameter['id_user'],))
+                data_response['message'] = "Successful"
+                conn.commit()
+            else:
+                parameter.pop('status')
+                cursor.execute('insert into parameter_user '
+                            '(parameter,id_user) values (%s,%s)',(parameter['parameter'].upper(),parameter['id_user']))
+                conn.commit()
+                data_response['message'] = "Successful"
+            resp.body = json.dumps(data_response)
+        return resp
+
+    @staticmethod
+    def on_get(_, resp):
+        """
+        Function from get
+        """
+        resp.body = ''
+        return resp
+
 api.add_route('/api/cpt-get-data', CptGetData())
 api.add_route('/api/infoempleo-get-data',InfoempleoGetData())
 api.add_route('/api/register',Register())
+api.add_route('/api/email-register',RegisterEmail())
+api.add_route('/api/login',LoginRappyJob())
+api.add_route('/api/update-parameter',UpdateParameter())

@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='style.css') }}">
+{% endblock %}
+{% block body %}
+
+{% if session_id %}
+<div class="container form-inline">
+    <button class="btn btn-light" data-toggle="modal" data-target="#ModalAgregar">
+        Agregar
+    </button>
+</div>
+<div class="modal fade" id="ModalAgregar" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="ModalLabel">Descripcion</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <form  method="post">
+            
+            <div class="modal-body">
+                <input type="parameter" class="form-control" id="parameter" required="" name="parameter"  placeholder="Parametro"> 
+                <br>
+                <!-- <div class="form-check">
+                    <input class="form-check-input hidden" type="checkbox" value="true" id="flexCheckChecked" name="checkstatus" checked>
+                    <label class="form-check-label" for="flexCheckChecked">
+                      Estado
+                    </label>
+                  </div> -->
+            </div>
+            <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+            <button type="submit" class="btn btn-primary">Agregar</button>
+            </div>
+        </form>
+      </div>
+    </div>
+</div>
+<br>
+<div class="container table">
+    <table class="table table-hover">
+        <thead>
+          <tr>
+            <th scope="col">Parametro</th>
+            <th scope="col">Estado</th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        {% if data_parameter %}
+        {% for i in data_parameter %}
+        <tbody>
+          <tr>
+            <td>{{ i['parameter'] }}</td>
+            {% if i['status'] %}
+            <td>Activo</td>
+            {% else %}
+            <td>Desactivado</td>
+            {% endif %}
+            <td><a data-toggle="modal" data-target="#Modal{{i['id']}}">
+                Editar
+            </a></td>
+          </tr>
+        </tbody>
+        {% endfor %}
+        {% endif %}
+      </table>
+</div>
+
+<!-- Button trigger modal -->
+<!-- <a class="btn btn-primary" data-toggle="modal" data-target="#exampleModal">
+    Launch demo modal
+</a> -->
+  
+  <!-- Modal -->
+    {% if data_parameter %}
+    {% for i in data_parameter %}
+  <div class="modal fade" id="Modal{{i['id']}}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="ModalLabel">Descripcion</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <form  method="post">
+            
+            <div class="modal-body">
+                <input type="parameter" class="form-control" id="parameter" required="" name="parameter"  value={{i['parameter']}}> 
+                <br>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="true" id="flexCheckChecked" name="checkstatus" {% if i['status'] %}checked{% endif %} >
+                    <label class="form-check-label" for="flexCheckChecked">
+                      Estado
+                    </label>
+                    <input type="hidden" name="id" value="{{i['id']}}">
+                  </div>
+            </div>
+            <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+            </div>
+        </form>
+      </div>
+    </div>
+  </div>
+    {% endfor %}
+    {% endif %}
+{% endif %}
+{% endblock %}

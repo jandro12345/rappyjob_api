@@ -44,3 +44,7 @@ body { padding-top: 70px; }
     max-height: 500px;
     margin: 0 auto;
 }
+.table{
+    background: #FFFFFF;
+    /* border-radius: 5px; */
+}

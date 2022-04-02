@@ -32,6 +32,18 @@
                         </div>
                         <div class="col-md-12 text-center" > <button class="btn btn-primary " style="margin: 0 auto;" type="submit">Login</button> </div>
                     </form>
+                    {% if status %}
+                    <br>
+                    <div class="message">
+                        {% with messages = get_flashed_messages(with_categories=true)  %}
+                        {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}"> {{ message }} </div>
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+                        {% endwith %}
+                    {% endif %}
                 </div>
                 <div class={% if data or name%}"tab-pane fade show active" {% else %} "tab-pane fade" {% endif %} id="register" role="tabpanel" aria-labelledby="register-tab">
                     <h4 class="text-center mt-4 mb-4" style="text-transform: uppercase;">Register</h4>
@@ -53,7 +65,7 @@
                             </div>
                         </div>
                     </form>
-                    <br>s
+                    <br>
                     <div class="message">
                         {% with messages = get_flashed_messages(with_categories=true)  %}
                         {% if messages %}
